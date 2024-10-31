@@ -5,6 +5,50 @@ import tempfile
 import os
 from io import BytesIO
 
+
+def check_api_key():
+    """Verifica se a API key está configurada corretamente."""
+    try:
+        if "secrets" not in st.__dict__:
+            return False, "Secrets não configuradas no Streamlit."
+            
+        if "ANTHROPIC_API_KEY" not in st.secrets:
+            return False, "ANTHROPIC_API_KEY não encontrada nas secrets. Verifique a configuração."
+            
+        if not st.secrets["ANTHROPIC_API_KEY"]:
+            return False, "ANTHROPIC_API_KEY está vazia."
+            
+        return True, "API key configurada corretamente."
+    except Exception as e:
+        return False, f"Erro ao verificar API key: {str(e)}"
+
+def get_claude_response(prompt, pdf_content):
+    """Obtém resposta da API do Claude."""
+    # Verifica a API key
+    is_valid, message = check_api_key()
+    if not is_valid:
+        return f"Erro: {message}"
+    
+    try:
+        client = Anthropic(api_key=st.secrets["ANTHROPIC_API_KEY"])
+        system_prompt = f"""Você é um assistente útil que ajuda a responder perguntas sobre o seguinte documento:
+
+        {pdf_content}
+
+        Por favor, responda às perguntas baseando-se apenas no conteúdo do documento fornecido."""
+
+        message = client.messages.create(
+            model="claude-3-haiku-20240307",
+            max_tokens=1024,
+            system=system_prompt,
+            messages=[{"role": "user", "content": prompt}]
+        )
+        return message.content[0].text
+    except Exception as e:
+        return f"Erro ao obter resposta: {str(e)}"
+
+
+
 # Configuração da página Streamlit
 st.set_page_config(page_title="Chat com PDF", layout="wide")
 
