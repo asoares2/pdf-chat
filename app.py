@@ -26,8 +26,10 @@ def extract_text_from_pdf(pdf_file):
         text += page.extract_text() + "\n"
     return text
 
-def get_claude_response(prompt, pdf_content, api_key):
+def get_claude_response(prompt, pdf_content):
     """Obtém resposta da API do Claude."""
+    # Usa a API key das secrets do Streamlit
+    api_key = st.secrets["ANTHROPIC_API_KEY"]
     client = Anthropic(api_key=api_key)
     
     system_prompt = f"""Você é um assistente útil que ajuda a responder perguntas sobre o seguinte documento:
@@ -49,31 +51,19 @@ def get_claude_response(prompt, pdf_content, api_key):
 
 def process_input():
     if st.session_state.user_question:
-        # Obtém a pergunta do estado da sessão
         question = st.session_state.user_question
-        
-        # Limpa o campo de entrada
         st.session_state.user_question = ""
-        
-        # Adiciona a pergunta ao histórico
         st.session_state.chat_history.append(("user", question))
-        
-        # Obtém resposta do Claude
-        response = get_claude_response(question, st.session_state.pdf_content, st.session_state.api_key)
-        
-        # Adiciona a resposta ao histórico
+        response = get_claude_response(question, st.session_state.pdf_content)
         st.session_state.chat_history.append(("assistant", response))
 
 # Interface principal
 st.title("📚 Chat com PDF")
 
-# Campo para API key (armazenando na session_state)
-api_key = st.sidebar.text_input("Digite sua API key do Anthropic:", type="password", key="api_key")
-
 # Upload do arquivo
 uploaded_file = st.sidebar.file_uploader("Faça upload do seu PDF", type="pdf")
 
-if uploaded_file and api_key:
+if uploaded_file:
     # Verifica se é um novo arquivo
     current_file_name = uploaded_file.name
     if current_file_name != st.session_state.current_file_name:
@@ -104,9 +94,7 @@ if uploaded_file and api_key:
         else:
             st.write("🤖 Assistente:", content)
 
-elif not api_key:
-    st.warning("Por favor, insira sua API key do Anthropic no menu lateral.")
-elif not uploaded_file:
+else:
     st.info("Por favor, faça upload de um arquivo PDF no menu lateral para começar.")
 
 # Botão para limpar o histórico
